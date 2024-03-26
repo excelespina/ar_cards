@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <style>
+    #downloadFileBtn, #bibleStudyFormBtn{
+      height: 25px; /* Example height, adjust as needed */
+      margin: 10px auto; /* Example margin, adjust as needed */
+      display: block;
+      /* Other styling properties like padding, font-size, etc. */
+    }
+    
+    .button-container {
+      position: fixed;
+      bottom: 15%; /* Adjust based on how close you want it to the bottom */
+      left: 0;
+      right: 0;
+      text-align: center;
+      z-index: 1000;
+    }
+  
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 0 5px; /* Adds a little space between buttons if they wrap */
+    }
+  
+    /* Optional: Style for additional options to align them nicely */
+    #otherEventsOptions button {
+      display: block; /* Stack the buttons vertically */
+      margin: 10px auto; /* Center the buttons and add some vertical space */
+    }
+
+    #otherEventsOptions {
+      display: none; /* Initially hidden */
+      margin-top: 10px; /* Space between the Other Events button and additional options */
+      margin-bottom: 5%; /* Space between the Other Events button and additional options */
+      max-height: 60px; /* Example max-height */
+      overflow-y: scroll; /* Enables vertical scrolling */
+      width: 80%; /* Adjust the width as needed */
+      background-color: transparent; /* Background color */
+      border-radius: 10px; /* Optional: adds rounded corners */
+      padding: 5px; /* Padding inside the scrollable area */
+      position: relative; /* Ensure it doesn't affect layout of other elements */
+      left: 50%; /* Center horizontally */
+      transform: translateX(-50%); /* Adjust based on width to center */
+      background-color: transparent; 
+      bottom: 20%;
+    }
+  
+  </style>
+</head>
+<body style="margin: 0px; overflow: hidden;">
+
+  <div class="button-container">
+    <!-- Download File Button -->
+    <a id="downloadFileBtn" href="{{ content_info.public_url }}" download="{{ content_info.filename }}">
+      <button>Download {{ content_info.filename }}</button> 
+    </a>
+    <!-- Other Events Button -->
+    <button id="otherEventsBtn">Other Events</button>
+    <div id="otherEventsOptions" style="display: none;">
+      {% for id, info in content_map.items() %}
+          <a href="{{ url_for('ar', id=id) }}">
+              <button>{{ info.type | capitalize }} {{ id }}</button>
+          </a>
+      {% endfor %}
+    </div>
+    <!-- Bible Study Interest Form Button -->
+    <button id="bibleStudyFormBtn" onclick="window.location.href='https://newyorkcityicc.org/#biblestudy';">Bible Study Interest Form</button>
+</div>
+
+<a-scene embedded arjs>
+  <a-marker type='pattern' url="{{ url_for('static', filename='markers/XL.patt') }}" smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
+    {% if content_info.type == "image" %}
+      <a-image id="dynamicImage" src="/proxy/{{ content_info.public_url | urlencode }}" position="0 1 0" rotation="-90 0 0"></a-image>
+    {% elif content_info.type == "video" %}
+      <a-video src="/proxy/{{ content_info.public_url | urlencode }}" width="2" height="1" position="0 0 0" rotation="-90 0 0" autoplay loop muted></a-video>
+    {% endif %}
+  </a-marker>
+  <a-entity camera></a-entity>
+</a-scene>
+
+<script>
+  document.getElementById('otherEventsBtn').addEventListener('click', function() {
+    var otherEventsOptions = document.getElementById('otherEventsOptions');
+    var downloadFileBtn = document.getElementById('downloadFileBtn');
+    var bibleStudyFormBtn = document.getElementById('bibleStudyFormBtn');
+
+    // Toggle display directly without relying on ternary operations
+    otherEventsOptions.style.display = (otherEventsOptions.style.display === 'none') ? 'block' : 'none';
+    downloadFileBtn.style.display = (otherEventsOptions.style.display === 'block') ? 'none' : 'block';
+    bibleStudyFormBtn.style.display = downloadFileBtn.style.display;
+  });
+  window.addEventListener('load', function () {
+      // Assuming 'content_info.type' is either 'image' or 'video'
+      var content_type = "{{ content_info.type }}";
+      var fileSrc = "{{ content_info.public_url }}";
+      var targetElement; // This will hold our image or video entity
+      
+      // Dynamically create an img or video element to measure dimensions
+      var mediaElement = content_type === 'image' ? new Image() : document.createElement('video');
+      
+      mediaElement.onload = mediaElement.onloadedmetadata = function() {
+          var aspectRatio = this.naturalWidth ? (this.naturalWidth / this.naturalHeight) : (this.videoWidth / this.videoHeight);
+          
+          // Calculate new dimensions based on aspect ratio
+          var width = aspectRatio * 3; // Example scaling factor
+          var height = 3; // Example fixed height
+          
+          // Find the target A-Frame entity based on content type
+          targetElement = document.querySelector(content_type === 'image' ? '#dynamicImage' : '#dynamicVideo');
+          
+          if(targetElement) {
+              targetElement.setAttribute('width', width.toString());
+              targetElement.setAttribute('height', height.toString());
+              // Set the src or url attribute depending on content type
+              if(content_type === 'image') {
+                  targetElement.setAttribute('src', fileSrc);
+              } else {
+                  targetElement.setAttribute('src', fileSrc);
+                  targetElement.load(); // For videos, make sure to load after setting the source
+              }
+          }
+      };
+  
+      // Set the src or url attribute to load the media
+      if(content_type === 'image') {
+          mediaElement.src = fileSrc;
+      } else {
+          mediaElement.src = fileSrc;
+          mediaElement.load(); // Load the video for getting its dimensions
+      }
+  });
+  function loadContentById(id) {
+    fetch(`/ar/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            const { type, file } = data;
+            const fileSrc = `/proxy/${file}`;
+            console.log(fileSrc);
+
+            let targetElement = document.querySelector('#dynamicContent');
+            
+            // Clear previous content
+            targetElement.innerHTML = '';
+
+            // Create and append new content
+            if (type === 'image') {
+                let imgElement = document.createElement('a-image');
+                var aspectRatio = this.naturalWidth ? (this.naturalWidth / this.naturalHeight) : (this.videoWidth / this.videoHeight);
+          
+                // Calculate new dimensions based on aspect ratio
+                var width = aspectRatio * 3; // Example scaling factor
+                var height = 3; // Example fixed height
+                imgElement.setAttribute('src', fileSrc);
+                imgElement.setAttribute('position', '0 0.5 0');
+                imgElement.setAttribute('rotation', '0 0 0');
+                imgElement.setAttribute('width', width.toString());
+                imgElement.setAttribute('height', height.toString());
+                targetElement.appendChild(imgElement);
+            } else if (type === 'video') {
+                let videoElement = document.createElement('a-video');
+                videoElement.setAttribute('src', fileSrc);
+                videoElement.setAttribute('position', '0 0.5 0');
+                videoElement.setAttribute('rotation', '0 0 0');
+                imgElement.setAttribute('width', width.toString());
+                imgElement.setAttribute('height', height.toString());
+                videoElement.setAttribute('autoplay', true);
+                targetElement.appendChild(videoElement);
+            }
+            let downloadButton = document.getElementById('downloadFileBtn');
+            downloadButton.href = fileSrc; // Set the correct path for downloading
+            downloadButton.download = file.split('/').pop(); 
+        })
+        .catch(error => console.error('Error loading content:', error));
+    }
+
+  </script>
+
+</body>
+</html>
