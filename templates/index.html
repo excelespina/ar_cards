@@ -75,9 +75,9 @@
 <a-scene embedded arjs>
   <a-marker type='pattern' url="{{ url_for('static', filename='markers/XL.patt') }}" smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
     {% if content_info.type == "image" %}
-      <a-image id="dynamicImage" src="/proxy/{{ content_info.public_url | urlencode }}" position="0 1 0" rotation="-90 0 0"></a-image>
+      <a-image id="dynamicImage" src="{{ content_info.public_url }}" position="0 1 0" rotation="-90 0 0"></a-image>
     {% elif content_info.type == "video" %}
-      <a-video src="/proxy/{{ content_info.public_url | urlencode }}" width="2" height="1" position="0 0 0" rotation="-90 0 0" autoplay loop muted></a-video>
+      <a-video src="{{ content_info.public_url }}" width="2" height="1" position="0 0 0" rotation="-90 0 0" autoplay loop muted></a-video>
     {% endif %}
   </a-marker>
   <a-entity camera></a-entity>
@@ -139,7 +139,7 @@
         .then(response => response.json())
         .then(data => {
             const { type, file } = data;
-            const fileSrc = `/proxy/${file}`;
+            const fileSrc = `${file}`;
             console.log(fileSrc);
 
             let targetElement = document.querySelector('#dynamicContent');
