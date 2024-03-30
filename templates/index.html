@@ -64,7 +64,7 @@
     <div id="otherEventsOptions" style="display: none;">
       {% for id, info in content_map.items() %}
           <a href="{{ url_for('ar', id=id) }}">
-              <button>{{ info.type | capitalize }} {{ id }}</button>
+              <button>{{ id }}</button>
           </a>
       {% endfor %}
     </div>

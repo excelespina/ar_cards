@@ -86,7 +86,7 @@ def ar(id=None):
     else:
         # Fetch all documents considering expiration_date
         docs = db.collection('events').where('expiration_date', '>', now).stream()
-        content_map = {doc.id: doc.to_dict() for doc in docs}
+        content_map = {doc.id: doc.to_dict() for doc in docs if doc.to_dict().get('is_public', False) == True}
         content_info = list(content_map.values())[0] if content_map else {
             "type": "image",
             "file": "default.png",
