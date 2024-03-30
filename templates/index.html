@@ -77,13 +77,38 @@
     {% if content_info.type == "image" %}
       <a-image id="dynamicImage" src="{{ content_info.public_url }}" position="0 1 0" rotation="-90 0 0"></a-image>
     {% elif content_info.type == "video" %}
-      <a-video src="{{ content_info.public_url }}" width="2" height="1" position="0 0 0" rotation="-90 0 0" autoplay loop muted></a-video>
+      <a-video id="dynamicVideo" src="{{ content_info.public_url }}" position="0 1 0" rotation="-90 0 0" autoplay loop muted playsinline></a-video>
     {% endif %}
   </a-marker>
   <a-entity camera></a-entity>
 </a-scene>
 
 <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    let markerDetected = false;
+    let openFileTimeout;
+    // Dynamically set activation time based on content type
+    let activationTime = "{{ content_info.type }}" === "image" ? 3000 : 5000;
+
+    const marker = document.querySelector('a-marker');
+    const fileUrl = "{{ content_info.public_url }}"; // URL of the file to open
+
+    marker.addEventListener('markerFound', function() {
+      markerDetected = true;
+
+      openFileTimeout = setTimeout(function() {
+        if(markerDetected) {
+          // Marker has been present for 5 seconds, open the file
+          window.location.href = fileUrl; // Change this to window.open(fileUrl, '_blank') if you want to open in a new tab instead
+        }
+      }, activationTime); // 5000 milliseconds = 5 seconds
+    });
+
+    marker.addEventListener('markerLost', function() {
+      markerDetected = false;
+      clearTimeout(openFileTimeout); // Cancel the file opening if the marker is lost
+    });
+  });
   document.getElementById('otherEventsBtn').addEventListener('click', function() {
     var otherEventsOptions = document.getElementById('otherEventsOptions');
     var downloadFileBtn = document.getElementById('downloadFileBtn');
@@ -94,6 +119,7 @@
     downloadFileBtn.style.display = (otherEventsOptions.style.display === 'block') ? 'none' : 'block';
     bibleStudyFormBtn.style.display = downloadFileBtn.style.display;
   });
+  
   window.addEventListener('load', function () {
       // Assuming 'content_info.type' is either 'image' or 'video'
       var content_type = "{{ content_info.type }}";
@@ -134,49 +160,6 @@
           mediaElement.load(); // Load the video for getting its dimensions
       }
   });
-  function loadContentById(id) {
-    fetch(`/ar/${id}`)
-        .then(response => response.json())
-        .then(data => {
-            const { type, file } = data;
-            const fileSrc = `${file}`;
-            console.log(fileSrc);
-
-            let targetElement = document.querySelector('#dynamicContent');
-            
-            // Clear previous content
-            targetElement.innerHTML = '';
-
-            // Create and append new content
-            if (type === 'image') {
-                let imgElement = document.createElement('a-image');
-                var aspectRatio = this.naturalWidth ? (this.naturalWidth / this.naturalHeight) : (this.videoWidth / this.videoHeight);
-          
-                // Calculate new dimensions based on aspect ratio
-                var width = aspectRatio * 3; // Example scaling factor
-                var height = 3; // Example fixed height
-                imgElement.setAttribute('src', fileSrc);
-                imgElement.setAttribute('position', '0 0.5 0');
-                imgElement.setAttribute('rotation', '0 0 0');
-                imgElement.setAttribute('width', width.toString());
-                imgElement.setAttribute('height', height.toString());
-                targetElement.appendChild(imgElement);
-            } else if (type === 'video') {
-                let videoElement = document.createElement('a-video');
-                videoElement.setAttribute('src', fileSrc);
-                videoElement.setAttribute('position', '0 0.5 0');
-                videoElement.setAttribute('rotation', '0 0 0');
-                imgElement.setAttribute('width', width.toString());
-                imgElement.setAttribute('height', height.toString());
-                videoElement.setAttribute('autoplay', true);
-                targetElement.appendChild(videoElement);
-            }
-            let downloadButton = document.getElementById('downloadFileBtn');
-            downloadButton.href = fileSrc; // Set the correct path for downloading
-            downloadButton.download = file.split('/').pop(); 
-        })
-        .catch(error => console.error('Error loading content:', error));
-    }
 
   </script>
 
